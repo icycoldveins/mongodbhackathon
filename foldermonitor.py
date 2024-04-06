@@ -6,6 +6,13 @@ import requests
 from nomic import embed
 import os
 import numpy as np
+import uuid
+
+# Connect to your Atlas cluster
+client = pymongo.MongoClient("connection string")# Replace 'your_database_name' with the name of your database
+db = client.your_database_name
+# Replace 'your_collection_name' with the name of your collection
+collection = db.your_collection_name
 
 
 class Handler(FileSystemEventHandler):
@@ -16,6 +23,8 @@ class Handler(FileSystemEventHandler):
         else:
             if event.src_path.endswith('.txt'):
                 print(f"Text file created: {event.src_path}")
+                file_uuid = uuid.uuid4()
+                print(f"Generated UUID for {event.src_path}: {file_uuid}")
 
                 try:
                     # Attempt to read the contents of the created text file
@@ -42,6 +51,27 @@ class Handler(FileSystemEventHandler):
             print("Folder deleted.")
         else:
             print("File deleted:", event.src_path)
+            # Retrieve and delete the document using the file path
+            try:
+                # Find the document using the file path
+                document = collection.find_one({"file_path": event.src_path})
+                if document:
+                    # Print the found UUID (for confirmation)
+                    print(
+                        f"Found UUID for {event.src_path}: {document['uuid']}")
+
+                    # Delete the document from the database
+                    collection.delete_one({"file_path": event.src_path})
+                    print(
+                        f"Deleted document for {event.src_path} from the database.")
+                else:
+                    print(f"No document found for {event.src_path}.")
+            except Exception as e:
+                print(
+                    f"An error occurred while deleting the file from the database: {e}")
+
+# Ensure you replace 'your_mongodb_connection_string', 'your_database_name', and 'your_collection_name'
+# with the actual values from your MongoDB Atlas setup.
 
 
 class Watcher:
