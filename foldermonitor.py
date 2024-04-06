@@ -9,7 +9,8 @@ import numpy as np
 import uuid
 
 # Connect to your Atlas cluster
-client = pymongo.MongoClient("connection string")# Replace 'your_database_name' with the name of your database
+# Replace 'your_database_name' with the name of your database
+client = pymongo.MongoClient("connection string")
 db = client.your_database_name
 # Replace 'your_collection_name' with the name of your collection
 collection = db.your_collection_name
@@ -40,6 +41,16 @@ class Handler(FileSystemEventHandler):
                         # Print the shape or size of embeddings to confirm successful creation
                         print(
                             f"Embeddings created with shape: {embeddings.shape}")
+
+                        # Insert the document into the MongoDB collection
+                        document = {
+                            "file_path": event.src_path,
+                            "uuid": str(file_uuid),
+                            "embeddings": embeddings.tolist(),  # Assuming embeddings can be converted to list
+                            "content": data  # Storing the text content, if desired
+                        }
+                        collection.insert_one(document)
+                        print("Document inserted into MongoDB.")
                 except Exception as e:
                     print(f"An error occurred while processing the file: {e}")
             else:
@@ -53,15 +64,9 @@ class Handler(FileSystemEventHandler):
             print("File deleted:", event.src_path)
             # Retrieve and delete the document using the file path
             try:
-                # Find the document using the file path
-                document = collection.find_one({"file_path": event.src_path})
-                if document:
-                    # Print the found UUID (for confirmation)
-                    print(
-                        f"Found UUID for {event.src_path}: {document['uuid']}")
-
-                    # Delete the document from the database
-                    collection.delete_one({"file_path": event.src_path})
+                # Delete the document using the file path directly
+                result = collection.delete_one({"file_path": event.src_path})
+                if result.deleted_count > 0:
                     print(
                         f"Deleted document for {event.src_path} from the database.")
                 else:
@@ -69,9 +74,6 @@ class Handler(FileSystemEventHandler):
             except Exception as e:
                 print(
                     f"An error occurred while deleting the file from the database: {e}")
-
-# Ensure you replace 'your_mongodb_connection_string', 'your_database_name', and 'your_collection_name'
-# with the actual values from your MongoDB Atlas setup.
 
 
 class Watcher:
