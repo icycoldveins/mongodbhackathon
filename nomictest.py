@@ -48,23 +48,25 @@ def generate_embeddings(input_texts: List[str], model_api_string: str, task_type
 
 
 
-def insertEmbedding(document: str, uuid: ObjectId, folder = True):
+def insertDocumentEmbedding(document: str, uuid: ObjectId):
         embedding_model_string = 'nomic-embed-text-v1'
         vector_database_field_name = 'nomic-embed-text'
         NUM_DOC_LIMIT = 250 
         sample_output = generate_embeddings([document], embedding_model_string)
+        doc = {}
+        doc[vector_database_field_name] = generate_embeddings([document], embedding_model_string)
+    
         try:
-            if folder:
-                db["folder"].insert_one({"_id": uuid, "embedding": sample_output})
-            else:
-                db["documents"].insert_one({"_id": uuid, "embedding": sample_output})
-                        
+                db["documents"].replace_one({'_id': uuid}, doc)      
         except pymongo.errors.OperationFailure:
                 print("An authentication error was received. Are you sure your database user is authorized to perform write operations?")
                 sys.exit(1)
+
+def insertFolderEmbedding(folder: str, uuid: ObjectId):
+      db["folders"].insert_one({"_id": uuid, "embedding": folder})
+      
           
 
-insertEmbedding("I love you", ObjectId())
     
 
 
